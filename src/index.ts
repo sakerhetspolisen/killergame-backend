@@ -284,6 +284,11 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
 const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
   if (!server.mongo.db) return fastify.close();
   const players = server.mongo.db.collection("players");
+  const activatedStops = server.mongo.db.collection("activatedStops");
+
+  fastify.get("/game/getStops", async (request, reply) => {
+    return reply.send(await activatedStops.findOne({}));
+  });
 
   fastify.post<{ Body: { pass: string }; Reply: string }>(
     "/game/randomize",
