@@ -287,7 +287,9 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
   const activatedStops = server.mongo.db.collection("activatedStops");
 
   fastify.get("/game/getStops", async (request, reply) => {
-    return reply.send(await activatedStops.findOne({}));
+    return reply.send(
+      await activatedStops.findOne({}, { projection: { _id: 0 } })
+    );
   });
 
   fastify.post<{ Body: { pass: string }; Reply: string }>(
