@@ -8,6 +8,8 @@ import fastifyMongodb from "@fastify/mongodb";
 import jwtAuthPlugin from "./jwtAuthPlugin";
 import logger from "./winstonLogger";
 import { IPlayer, IServerPlayer } from "./interfaces/player.interface";
+import Mailgun from "mailgun.js";
+import FormData from "form-data";
 
 const server = fastify();
 const port = Number(process.env.PORT) || 9001;
@@ -72,7 +74,12 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
     async (request, reply) => {
       const stops = await activatedStops.findOne({});
       if (stops?.signup) return reply.serviceUnavailable();
-      console.log("signupStop evaluated to " + stops?.signup);
+      const DOMAIN = "sandbox70b8b52f49924c038ac0745b32265b8e.mailgun.org";
+      const mailgun = new Mailgun(FormData);
+      const mg = mailgun.client({
+        key: "968e7dc1055c9c1970929a5e4c1ee633-d117dd33-d17d0bb6",
+        username: "api",
+      });
 
       const player = {
         id: Math.floor(100000 + Math.random() * 900000).toString(),
@@ -87,8 +94,32 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       };
       const res = await players.insertOne(player);
       const token = fastify.jwt.sign({ playerId: player.id });
-      if (res.acknowledged === true) reply.send({ ...player, token: token });
-      else reply.internalServerError();
+      if (res.acknowledged === true) {
+        const data = {
+          from: "Killergame <postmaster@sandbox70b8b52f49924c038ac0745b32265b8e.mailgun.org>",
+          to: player.email,
+          subject: `${player.firstName}, här är din inloggningskod.`,
+          template: "player_id",
+          "h:X-Mailgun-Variables": {
+            firstName: player.firstName,
+            playerId: player.id,
+          },
+        };
+        try {
+          const res = await mg.messages.create(DOMAIN, data);
+          if (res.status === 200) {
+            reply.send({ ...player, token: token });
+          } else {
+            reply.internalServerError(
+              "Player was created, but there was a problem sending the welcome email."
+            );
+          }
+        } catch (err) {
+          reply.internalServerError(
+            "Player was created, but there was a problem sending the welcome email."
+          );
+        }
+      } else reply.internalServerError();
     }
   );
 
