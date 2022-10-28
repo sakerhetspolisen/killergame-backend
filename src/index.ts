@@ -5,16 +5,12 @@ import fastifySensible from "@fastify/sensible";
 import fastifyCORS from "@fastify/cors";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyMongodb from "@fastify/mongodb";
-import jwtAuthPlugin from "./jwtAuthPlugin";
 import logger from "./winstonLogger";
 import { IPlayer, IServerPlayer } from "./interfaces/player.interface";
-import Mailgun from "mailgun.js";
-import FormData from "form-data";
 
 const server = fastify();
 const port = Number(process.env.PORT) || 9001;
 server.register(fastifySensible);
-server.register(jwtAuthPlugin);
 server.register(fastifyCORS, {
   origin: true,
   methods: ["GET", "POST", "DELETE"],
@@ -74,12 +70,6 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
     async (request, reply) => {
       const stops = await activatedStops.findOne({});
       if (stops?.signup) return reply.serviceUnavailable();
-      const DOMAIN = "sandbox70b8b52f49924c038ac0745b32265b8e.mailgun.org";
-      const mailgun = new Mailgun(FormData);
-      const mg = mailgun.client({
-        key: "968e7dc1055c9c1970929a5e4c1ee633-d117dd33-d17d0bb6",
-        username: "api",
-      });
 
       const player = {
         id: Math.floor(100000 + Math.random() * 900000).toString(),
@@ -93,32 +83,8 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
         grade: request.body.grade,
       };
       const res = await players.insertOne(player);
-      const token = fastify.jwt.sign({ playerId: player.id });
       if (res.acknowledged === true) {
-        const data = {
-          from: "Killergame <postmaster@sandbox70b8b52f49924c038ac0745b32265b8e.mailgun.org>",
-          to: player.email,
-          subject: `${player.firstName}, här är din inloggningskod.`,
-          template: "player_id",
-          "h:X-Mailgun-Variables": {
-            firstName: player.firstName,
-            playerId: player.id,
-          },
-        };
-        try {
-          const res = await mg.messages.create(DOMAIN, data);
-          if (res.status === 200) {
-            reply.send({ ...player, token: token });
-          } else {
-            reply.internalServerError(
-              "Player was created, but there was a problem sending the welcome email."
-            );
-          }
-        } catch (err) {
-          reply.internalServerError(
-            "Player was created, but there was a problem sending the welcome email."
-          );
-        }
+        reply.send(player);
       } else reply.internalServerError();
     }
   );
@@ -131,16 +97,15 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
         .find({ id: playerId }, { projection: { _id: 0 } })
         .limit(1)
         .toArray();
-      const player = res[0];
-      if (player) {
+      const { targetId, ...player } = res[0];
+      if (targetId) {
         const findTargets = await players
           .find(
-            { id: player.targetId },
+            { id: targetId },
             { projection: { firstName: 1, lastName: 1, grade: 1, _id: 0 } }
           )
           .limit(1)
           .toArray();
-        players;
         const target = findTargets[0];
         reply.send(
           target
@@ -158,7 +123,7 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
     }
   );
 
-  fastify.post<{ Body: { victimId: string } }>(
+  fastify.post<{ Body: { victimId: string; playerId: string } }>(
     "/player/killPlayer",
     {
       schema: {
@@ -167,26 +132,26 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
           required: ["killerId", "victimId"],
           properties: {
             victimId: { type: "string" },
+            playerId: { type: "string" },
           },
         },
       },
-      onRequest: [fastify.authenticate],
     },
     async (request, reply) => {
       const stops = await activatedStops.findOne({});
       if (stops?.kill) return reply.serviceUnavailable();
       if (!server.mongo.db) return reply.internalServerError();
       const deadPlayers = server.mongo.db.collection("deadPlayers");
-      const { victimId } = request.body;
+      const { victimId, playerId } = request.body;
       const killer = await players.findOne(
-        { id: request.user.playerId },
+        { id: playerId },
         { projection: { _id: 0, targetId: 1, kills: 1, latestKillTime: 1 } }
       );
       if (killer?.targetId === victimId) {
         const victim = await players.findOneAndDelete({ id: victimId });
         if (victim.ok && victim.value) {
           await players.updateOne(
-            { id: request.user.playerId },
+            { id: playerId },
             {
               $set: {
                 kills: killer.kills + 1,
