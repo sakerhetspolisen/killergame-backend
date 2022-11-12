@@ -98,7 +98,7 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
         .limit(1)
         .toArray();
       const { targetId, ...player } = res[0];
-      if (targetId) {
+      if (player) {
         const findTargets = await players
           .find(
             { id: targetId },
@@ -129,7 +129,7 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       schema: {
         body: {
           type: "object",
-          required: ["killerId", "victimId"],
+          required: ["playerId", "victimId"],
           properties: {
             victimId: { type: "string" },
             playerId: { type: "string" },
@@ -289,6 +289,26 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
   });
 
   fastify.post<{ Body: { pass: string }; Reply: string }>(
+    "/game/login",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["password"],
+          properties: {
+            password: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (request.body.pass !== "DarlingDialThatNumber777%")
+        reply.unauthorized();
+      else reply.send("ok");
+    }
+  );
+
+  fastify.post<{ Body: { pass: string }; Reply: string }>(
     "/game/randomize",
     {
       schema: {
@@ -302,7 +322,8 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       },
     },
     async (request, reply) => {
-      if (request.body.pass !== "DarlingDialThatNumber") reply.unauthorized();
+      if (request.body.pass !== "DarlingDialThatNumber777%")
+        reply.unauthorized();
       const res = await players
         .find(
           {},
@@ -325,6 +346,50 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       reply.send("ok");
     }
   );
+
+  fastify.get("/game/debug", async (request, reply) => {
+    if (request.headers["x-pass"] !== "DarlingDialThatNumber777%")
+      reply.unauthorized();
+    const res = await players
+      .find(
+        {},
+        {
+          projection: { _id: 1, id: 1, targetId: 1, email: 1 },
+        }
+      )
+      .toArray();
+    let nonValidTargets: Array<string> = [];
+    let playersThatAreNotTargets: Array<string> = [];
+    let playersThatAreTargetsMultipleTimes: Array<string> = [];
+    let playersWithSamePlayerId: Array<[string, string]> = [];
+    let playersWithSameEmail: Array<[string, string]> = [];
+    let playersWithoutTarget: Array<string> = [];
+    for (let a of res) {
+      let found = false;
+      let timesFoundAsTarget = 0;
+      if (!a["targetId"]) playersWithoutTarget.push(a["id"]);
+      for (let b of res) {
+        if (a["targetId"] === b["id"]) found = true;
+        if (a["id"] === a["targetId"]) timesFoundAsTarget += 1;
+        if (a["id"] === b["id"] && a["_id"] !== b["_id"])
+          playersWithSamePlayerId.push([a["email"], b["email"]]);
+        if (a["email"] === b["email"] && a["_id"] !== b["_id"])
+          playersWithSameEmail.push([a["id"], b["id"]]);
+      }
+      if (!found) nonValidTargets.push(a["targetId"]);
+      if (timesFoundAsTarget === 0) playersThatAreNotTargets.push(a["id"]);
+      if (timesFoundAsTarget > 1)
+        playersThatAreTargetsMultipleTimes.push(a["id"]);
+    }
+    reply.send({
+      nonValidTargets,
+      playersThatAreNotTargets,
+      playersThatAreTargetsMultipleTimes,
+      playersWithSamePlayerId,
+      playersWithSameEmail,
+      playersWithoutTarget,
+    });
+  });
 
   done();
 };
