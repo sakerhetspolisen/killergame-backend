@@ -477,15 +477,16 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
   );
 
   fastify.post<{
-    Body: { message?: string; password: string };
+    Body: { paused: boolean; message?: string; password: string };
   }>(
-    "/game/pauseGame",
+    "/game/changeGameStatus",
     {
       schema: {
         body: {
           type: "object",
-          required: ["password"],
+          required: ["paused", "password"],
           properties: {
+            paused: { type: "boolean" },
             message: { type: "string" },
             password: { type: "string" },
           },
@@ -494,12 +495,12 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
     },
     async (request, reply) => {
       if (!server.mongo.db) return reply.internalServerError();
-      const { message, password: pass } = request.body;
+      const { paused, message, password: pass } = request.body;
       if (pass !== "DarlingDialThatNumber777%") reply.unauthorized();
       const activatedStops = server.mongo.db.collection("activatedStops");
       await activatedStops.updateMany(
         {},
-        { $set: { kill: false, killStopMsg: message } }
+        { $set: { kill: paused, killStopMsg: paused ? message : undefined } }
       );
       reply.send("ok");
     }
