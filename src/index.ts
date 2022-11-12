@@ -161,7 +161,7 @@ const playerRoutes = (fastify: FastifyInstance, options: any, done: any) => {
               },
             }
           );
-          await deadPlayers.insertOne(victim.value);
+          await deadPlayers.insertOne({ killedBy: playerId, ...victim.value });
           reply.send(`Successfully deleted player ${victimId}.`);
         } else {
           reply.internalServerError("Couldn't find victim");
@@ -308,21 +308,21 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
     }
   );
 
-  fastify.post<{ Body: { pass: string }; Reply: string }>(
+  fastify.post<{ Body: { password: string }; Reply: string }>(
     "/game/randomize",
     {
       schema: {
         body: {
           type: "object",
-          required: ["pass"],
+          required: ["password"],
           properties: {
-            pass: { type: "string" },
+            password: { type: "string" },
           },
         },
       },
     },
     async (request, reply) => {
-      if (request.body.pass !== "DarlingDialThatNumber777%")
+      if (request.body.password !== "DarlingDialThatNumber777%")
         reply.unauthorized();
       const res = await players
         .find(
@@ -376,7 +376,7 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
         if (a["email"] === b["email"] && a["_id"] !== b["_id"])
           playersWithSameEmail.push([a["id"], b["id"]]);
       }
-      if (!found) nonValidTargets.push(a["targetId"]);
+      if (!found && a["targetId"] !== null) nonValidTargets.push(a["targetId"]);
       if (timesFoundAsTarget === 0) playersThatAreNotTargets.push(a["id"]);
       if (timesFoundAsTarget > 1)
         playersThatAreTargetsMultipleTimes.push(a["id"]);
@@ -390,6 +390,120 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       playersWithoutTarget,
     });
   });
+
+  fastify.post<{ Body: { playerId: string; password: string } }>(
+    "/game/revivePlayer",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["playerId", "victimId"],
+          properties: {
+            playerId: { type: "string" },
+            password: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!server.mongo.db) return reply.internalServerError();
+      const { playerId, password } = request.body;
+      if (password !== "DarlingDialThatNumber777%") reply.unauthorized();
+      const deadPlayers = server.mongo.db.collection("deadPlayers");
+      const player = await deadPlayers.findOne({ id: playerId });
+      if (player) {
+        const tempPlayer = await players
+          .findOne({})
+          .then((p) => (p ? p : { targetId: null, id: null }));
+        if (tempPlayer.targetId) {
+          let playerWithoutKilledBy = { ...player };
+          delete playerWithoutKilledBy.killedBy;
+          await players.insertOne({
+            targetId: tempPlayer.targetId,
+            ...playerWithoutKilledBy,
+          });
+          await players.updateOne(
+            { id: tempPlayer.id },
+            { $set: { targetId: player.id } }
+          );
+          await players.updateOne(
+            { id: player.killedBy },
+            { $inc: { kills: -1 } }
+          );
+          reply.send(`Successfully revived player ${playerId}.`);
+        } else {
+          reply.internalServerError("Couldn't assign a new target to player");
+        }
+      } else {
+        reply.forbidden("Provided playerId is incorrect");
+      }
+    }
+  );
+
+  fastify.post<{
+    Body: { db: number; query: string; type: number; password: string };
+  }>(
+    "/game/searchPlayer",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["db", "query", "type", "password"],
+          properties: {
+            db: { type: "number" },
+            query: { type: "string" },
+            type: { type: "number" },
+            password: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!server.mongo.db) return reply.internalServerError();
+      const { db, query, type, password: pass } = request.body;
+      if (pass !== "DarlingDialThatNumber777%") reply.unauthorized();
+      if (db !== 0 && db !== 1) reply.badRequest();
+      if (type > 3) reply.badRequest();
+      const deadPlayers = server.mongo.db.collection("deadPlayers");
+      let field = ["email", "firstName", "lastName", "targetId", "id"][type];
+      const findQuery: any = {};
+      findQuery[field] = query;
+      const res =
+        db === 0
+          ? await players.find(findQuery).toArray()
+          : await deadPlayers.find(findQuery).toArray();
+      reply.send(res);
+    }
+  );
+
+  fastify.post<{
+    Body: { message?: string; password: string };
+  }>(
+    "/game/pauseGame",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["password"],
+          properties: {
+            message: { type: "string" },
+            password: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!server.mongo.db) return reply.internalServerError();
+      const { message, password: pass } = request.body;
+      if (pass !== "DarlingDialThatNumber777%") reply.unauthorized();
+      const activatedStops = server.mongo.db.collection("activatedStops");
+      await activatedStops.updateMany(
+        {},
+        { $set: { kill: false, killStopMsg: message } }
+      );
+      reply.send("ok");
+    }
+  );
 
   done();
 };
