@@ -12,7 +12,12 @@ const server = fastify();
 const port = Number(process.env.PORT) || 9001;
 server.register(fastifySensible);
 server.register(fastifyCORS, {
-  origin: ["http://killerga.me", "https://killerga.me"],
+  origin: [
+    "http://killerga.me",
+    "https://killerga.me",
+    "http://www.killerga.me",
+    "https://www.killerga.me",
+  ],
   methods: ["GET", "POST", "DELETE"],
 });
 server.register(fastifyRateLimit, {
@@ -220,7 +225,7 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       ])
       .toArray();
     reply.cacheControl("public");
-    reply.cacheControl("max-age", 604800);
+    reply.cacheControl("max-age", 600);
     reply.send(distinctGrades[0]);
   });
 
@@ -256,7 +261,7 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
         .find(
           { fastestKill: { $ne: undefined } },
           {
-            sort: { fastestKill: -1 },
+            sort: { fastestKill: 1 },
             limit: 10,
             projection: {
               _id: 0,
@@ -436,6 +441,7 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
             { id: player.killedBy },
             { $inc: { kills: -1 } }
           );
+          await deadPlayers.deleteOne({ id: playerId });
           reply.send(`Successfully revived player ${playerId}.`);
         } else {
           reply.internalServerError("Couldn't assign a new target to player");
