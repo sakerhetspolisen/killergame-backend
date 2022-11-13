@@ -288,7 +288,7 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
     );
   });
 
-  fastify.post<{ Body: { pass: string }; Reply: string }>(
+  fastify.post<{ Body: { password: string }; Reply: string }>(
     "/game/login",
     {
       schema: {
@@ -302,7 +302,7 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       },
     },
     async (request, reply) => {
-      if (request.body.pass !== "DarlingDialThatNumber777%")
+      if (request.body.password !== "DarlingDialThatNumber777%")
         reply.unauthorized();
       else reply.send("ok");
     }
@@ -370,7 +370,7 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       if (!a["targetId"]) playersWithoutTarget.push(a["id"]);
       for (let b of res) {
         if (a["targetId"] === b["id"]) found = true;
-        if (a["id"] === a["targetId"]) timesFoundAsTarget += 1;
+        if (a["id"] === b["targetId"]) timesFoundAsTarget += 1;
         if (a["id"] === b["id"] && a["_id"] !== b["_id"])
           playersWithSamePlayerId.push([a["email"], b["email"]]);
         if (a["email"] === b["email"] && a["_id"] !== b["_id"])
@@ -397,7 +397,7 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       schema: {
         body: {
           type: "object",
-          required: ["playerId", "victimId"],
+          required: ["playerId", "password"],
           properties: {
             playerId: { type: "string" },
             password: { type: "string" },
@@ -412,19 +412,25 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       const deadPlayers = server.mongo.db.collection("deadPlayers");
       const player = await deadPlayers.findOne({ id: playerId });
       if (player) {
-        const tempPlayer = await players
-          .findOne({})
-          .then((p) => (p ? p : { targetId: null, id: null }));
-        if (tempPlayer.targetId) {
-          let playerWithoutKilledBy = { ...player };
-          delete playerWithoutKilledBy.killedBy;
+        const tempPlayer = await players.findOne({}).then((p) => p);
+        if (tempPlayer) {
+          console.log(
+            `${player.id} will be revived and gets the targetId ${tempPlayer.targetId}`
+          );
+          console.log(
+            `${tempPlayer.id} is the temp player, who went from having targetId ${tempPlayer.targetId} to ${player.id}`
+          );
+          console.log(`${player.killedBy} will be deducted 1 kill`);
+          let revivedPlayer = { ...player };
+          delete revivedPlayer.killedBy;
+          delete revivedPlayer.targetId;
           await players.insertOne({
             targetId: tempPlayer.targetId,
-            ...playerWithoutKilledBy,
+            ...revivedPlayer,
           });
           await players.updateOne(
             { id: tempPlayer.id },
-            { $set: { targetId: player.id } }
+            { $set: { targetId: revivedPlayer.id } }
           );
           await players.updateOne(
             { id: player.killedBy },
@@ -468,11 +474,22 @@ const gameRoutes = (fastify: FastifyInstance, options: any, done: any) => {
       let field = ["email", "firstName", "lastName", "targetId", "id"][type];
       const findQuery: any = {};
       findQuery[field] = query;
-      const res =
+      console.log(findQuery);
+      reply.send(
         db === 0
-          ? await players.find(findQuery).toArray()
-          : await deadPlayers.find(findQuery).toArray();
-      reply.send(res);
+          ? await players
+              .find(findQuery, {
+                sort: { lastName: 1 },
+                projection: { _id: 0 },
+              })
+              .toArray()
+          : await deadPlayers
+              .find(findQuery, {
+                sort: { lastName: 1 },
+                projection: { _id: 0 },
+              })
+              .toArray()
+      );
     }
   );
 
