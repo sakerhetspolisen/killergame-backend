@@ -12,11 +12,11 @@ const server = fastify();
 const port = Number(process.env.PORT) || 9001;
 server.register(fastifySensible);
 server.register(fastifyCORS, {
-  origin: true,
+  origin: ["http://killerga.me", "https://killerga.me"],
   methods: ["GET", "POST", "DELETE"],
 });
 server.register(fastifyRateLimit, {
-  max: 100,
+  max: 84,
   timeWindow: "1 minute",
 });
 server.register(fastifyMongodb, {
@@ -229,7 +229,7 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
     async (request, reply) => {
       const topList = await players
         .find(
-          {},
+          { kills: { $ne: 0 } },
           {
             sort: { kills: 1 },
             limit: 10,
