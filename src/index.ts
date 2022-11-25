@@ -224,8 +224,6 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
         },
       ])
       .toArray();
-    reply.cacheControl("public");
-    reply.cacheControl("max-age", 600);
     reply.send(distinctGrades[0]);
   });
 
@@ -236,7 +234,7 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
         .find(
           { kills: { $ne: 0 } },
           {
-            sort: { kills: 1 },
+            sort: { kills: -1 },
             limit: 10,
             projection: {
               _id: 0,
@@ -248,8 +246,6 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
           }
         )
         .toArray();
-      reply.cacheControl("public");
-      reply.cacheControl("max-age", 604800);
       reply.send(topList);
     }
   );
@@ -273,8 +269,6 @@ const statsRoutes = (fastify: FastifyInstance, options: any, done: any) => {
           }
         )
         .toArray();
-      reply.cacheControl("public");
-      reply.cacheControl("max-age", 604800);
       reply.send(topList);
     }
   );
