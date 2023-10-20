@@ -63,5 +63,7 @@ yarn.lock
 package-lock.json
 
 # env files
-*.env
 .env
+
+# secrets
+secret_key*
