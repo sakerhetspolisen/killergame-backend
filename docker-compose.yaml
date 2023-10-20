@@ -1,0 +1,30 @@
+version: '2'
+services:
+  mongodb:
+    image: mongo:latest
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMIN}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMIN_PWD}
+    ports:
+      - 27017:27017
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "'db.runCommand(\"ping\").ok'", "--quiet"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  app:
+    image: node:18-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 9001:9001
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    depends_on:
+      mongodb:
+        condition: service_healthy
