@@ -12,7 +12,17 @@ import adminAuth from "./plugins/adminAuth";
 import fastifyCookie from "@fastify/cookie";
 import fastifyCsrfProtection from "@fastify/csrf-protection";
 import playerAuth from "./plugins/playerAuth";
+import fastifyWebsocket from "@fastify/websocket";
+import { readFileSync } from "fs";
+import path from "path";
+import { COOKIE_OPTS } from "./config/cookieOpts";
+import fastifyHelmet from "@fastify/helmet";
 
+/**
+ * Type declarations that extend fastify. These can't be moved to a
+ * *.d.ts file because they need to be read after the dependencies
+ * are imported
+ */
 declare module "fastify" {
   interface FastifyInstance {
     adminAuthorize: (
@@ -60,18 +70,39 @@ const server = fastify({
 });
 const port = Number(process.env.PORT) || 9001;
 
+/**
+ * Adds functionality to reply with HTTP status codes with a constant
+ * response schema.
+ */
 server.register(fastifySensible);
 
+/**
+ * CORS settings for the API disables use of it on other domains than
+ * the ones specified in "origin". Additionally, we here disable all
+ * other types of requests than GET, POST and PUT.
+ */
 server.register(fastifyCORS, {
   origin: ["127.0.0.1", "killergameprocce.se"],
   methods: ["GET", "POST", "PUT"],
 });
 
+/**
+ * To attempt to minimize the work-load of the server, we here define
+ * a rate limit of "max" requests per "timeWindow"
+ */
 server.register(fastifyRateLimit, {
   max: 84,
   timeWindow: "1 minute",
 });
 
+/**
+ * Adds import security HTTP headers to all replies
+ */
+server.register(fastifyHelmet);
+
+/**
+ * Connector to MongoDB database
+ */
 server.register(fastifyMongodb, {
   url: "mongodb://mongodb",
   database: process.env.MONGODB_DB_NAME!,
@@ -82,9 +113,44 @@ server.register(fastifyMongodb, {
   },
 });
 
-server.register(fastifyCookie);
-server.register(fastifyCsrfProtection);
+/**
+ * We use @fastify/cookie to be able to set and delete cookies in
+ * replies. This is manily for authentication purposes, but could also
+ * be used to store other values. We sign all cookies with a secret
+ */
+server.register(fastifyCookie, {
+  secret: readFileSync(path.join(__dirname, "..", "cookieSecret.key")),
+});
 
+/**
+ * We enable CSRF-protection with @fastify/csrf-protection, which
+ * seamlessly works together with @fastify/cookie
+ *
+ * BUG: csrfOpts.hmacKey has to be passed in order for TS to not throw
+ *      a type error when specifying @fastify/cookie as the
+ *      "sessionPlugin"
+ */
+server.register(fastifyCsrfProtection, {
+  cookieOpts: COOKIE_OPTS,
+  sessionPlugin: "@fastify/cookie",
+  csrfOpts: {
+    hmacKey: readFileSync(path.join(__dirname, "..", "csrfHMAC.key")),
+  },
+});
+
+/**
+ * Websockets are used to serve stats polled from the stats-collection
+ */
+server.register(fastifyWebsocket, {
+  options: {
+    maxPayload: 1000,
+  },
+});
+
+/**
+ * The authorization-plugins used to authenticate and authorize admins
+ * and players
+ */
 server.register(adminAuth);
 server.register(playerAuth);
 
@@ -94,8 +160,7 @@ server.register(admin, { prefix: "/admin" });
 
 server.listen({ port: port, host: "0.0.0.0" }, (err, address) => {
   if (err) {
-    console.log(err);
+    server.log.error(err);
     process.exit(1);
   }
-  console.log(`Server listening at ${address}!`);
 });

@@ -5,32 +5,25 @@ import { IAdmin } from "../interfaces/admin.interface";
 import bcrypt from "bcrypt";
 import { readFileSync } from "fs";
 import path from "path";
-import { CookieSerializeOptions } from "@fastify/cookie";
+import { JWT_ADMIN_COOKIE_NAME } from "../config/config";
+import { COOKIE_OPTS } from "../config/cookieOpts";
 
 const adminAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
-  const env = process.env.NODE_ENV;
-  const JWT_COOKIE_NAME = "admin-token";
-  const cookieOpts: CookieSerializeOptions = {
-    path: "/",
-    secure: env === "production",
-    httpOnly: true,
-    sameSite: "strict",
-    signed: false,
-    maxAge: 60 * 60 * 24,
-  };
   if (!fastify.mongo.db) return fastify.close();
   const admins = fastify.mongo.db.collection(
     process.env.MONGODB_DB_TABLE_NAME_ADMINS!
   );
 
   fastify.register(fastifyJwt, {
-    secret: readFileSync(path.join(__dirname, "..", "..", "secret_key_admin")),
+    secret: readFileSync(
+      path.join(__dirname, "..", "..", "jwtSecretAdmin.key")
+    ),
     sign: {
       algorithm: "HS256",
       expiresIn: 3600, // 1 day
     },
     cookie: {
-      cookieName: JWT_COOKIE_NAME,
+      cookieName: JWT_ADMIN_COOKIE_NAME,
       signed: true,
     },
     namespace: "admin",
@@ -50,6 +43,7 @@ const adminAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
             username: { type: "string" },
             password: { type: "string" },
           },
+          required: ["username", "password"],
         },
       },
     },
@@ -96,6 +90,7 @@ const adminAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
             username: { type: "string" },
             password: { type: "string" },
           },
+          required: ["username", "password"],
         },
       },
     },
@@ -134,7 +129,7 @@ const adminAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         }
       );
 
-      reply.setCookie(JWT_COOKIE_NAME, token, cookieOpts);
+      reply.setCookie(JWT_ADMIN_COOKIE_NAME, token, COOKIE_OPTS);
       reply.generateCsrf();
 
       return {

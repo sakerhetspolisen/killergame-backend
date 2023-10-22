@@ -1,17 +1,24 @@
-version: '2'
+version: '3'
 services:
   mongodb:
     image: mongo:latest
     restart: always
     environment:
+      # Creates an admin user used by 'app', credentials are found
+      # in the .env file
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMIN}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMIN_PWD}
     ports:
       - 27017:27017
+    # We want to report to the 'app' service when the db is ready to use
+    # because otherwise 'app' will attempt to connect using credentials 
+    # that eventually don't exist yet
     healthcheck:
+      # Ping the database every 30th second, with a 10s interval
       test: ["CMD", "mongosh", "--eval", "'db.runCommand(\"ping\").ok'", "--quiet"]
       interval: 30s
       timeout: 10s
+      # If not successful after 5 retries, 'app' will not start
       retries: 5
 
   app:
@@ -22,6 +29,8 @@ services:
     ports:
       - 9001:9001
     working_dir: /app
+    # We create two seperate volumes so that we don't encounter errors
+    # in production where the node_modules folder may look different
     volumes:
       - ./:/app
       - /app/node_modules

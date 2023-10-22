@@ -66,4 +66,4 @@ package-lock.json
 .env
 
 # secrets
-secret_key*
+*.key

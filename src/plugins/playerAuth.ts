@@ -1,36 +1,29 @@
 import fastifyJwt from "@fastify/jwt";
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
-import bcrypt from "bcrypt";
 import { readFileSync } from "fs";
 import path from "path";
-import { CookieSerializeOptions } from "@fastify/cookie";
 import { IPlayer } from "../interfaces/player.interface";
+import { ALLOWED_GRADES, JWT_PLAYER_COOKIE_NAME } from "../config/config";
+import { COOKIE_OPTS } from "../config/cookieOpts";
 
 const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   const env = process.env.NODE_ENV;
-  const JWT_COOKIE_NAME = "token";
-  const cookieOpts: CookieSerializeOptions = {
-    path: "/",
-    secure: env === "production",
-    httpOnly: true,
-    sameSite: "strict",
-    signed: false,
-    maxAge: 60 * 60 * 24 * 10, //10 days
-  };
   if (!fastify.mongo.db) return fastify.close();
   const players = fastify.mongo.db.collection(
     process.env.MONGODB_DB_TABLE_NAME_PLAYERS!
   );
 
   fastify.register(fastifyJwt, {
-    secret: readFileSync(path.join(__dirname, "..", "..", "secret_key_player")),
+    secret: readFileSync(
+      path.join(__dirname, "..", "..", "jwtSecretPlayer.key")
+    ),
     sign: {
       algorithm: "HS256",
       expiresIn: 60 * 60 * 24 * 10, // 10 days
     },
     cookie: {
-      cookieName: JWT_COOKIE_NAME,
+      cookieName: JWT_PLAYER_COOKIE_NAME,
       signed: true,
     },
     namespace: "player",
@@ -41,7 +34,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   fastify.decorate("playerAuthorize", authorize);
 
   fastify.post<{ Body: Pick<IPlayer, "name" | "email" | "grade"> }>(
-    "/player/new",
+    "/signup",
     {
       schema: {
         body: {
@@ -51,6 +44,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
             email: { type: "string" },
             grade: { type: "string", maxLength: 6 },
           },
+          required: ["name", "email", "grade"],
         },
       },
     },
@@ -69,11 +63,18 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           return reply.badRequest("Player already exists");
         }
 
-        // Generate the unique id for the player
-        // If a player dies, this id is used by the player who killed
-        // to earn points in the game.
-        // This is a resource-intensive operation, therefore we cap
-        // the operation after n retries.
+        // Check if grade is one of the allowed grade values
+        if (!ALLOWED_GRADES.includes(req.body.grade)) {
+          return reply.badRequest("Grade does not exist");
+        }
+
+        /**
+         * Generate the unique id for the player
+         * If a player dies, this id is used by the player who killed
+         * to earn points in the game.
+         * This is a resource-intensive operation, therefore we cap
+         * the operation after n retries.
+         */
         const MAX_ID_GEN_RETRIES = 10;
         let id: string;
         let retries = 0;
@@ -84,6 +85,17 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
             return reply.internalServerError("Failed to generate a unique id");
           }
         } while (await players.findOne({ id }));
+
+        /**
+         * We attempt to generate a target for the player by checking if there
+         * are any un-assigned players in the database. If we can't find any,
+         * 'target' becomes null.
+         */
+        const target = await players.findOneAndUpdate(
+          { isTarget: false },
+          { $set: { isTarget: true } },
+          { projection: { name: 1, id: 1, grade: 1 } }
+        );
 
         // Prettify the player name
         const name: string = req.body.name
@@ -98,20 +110,17 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         const grade: string = req.body.grade.toUpperCase();
 
         const creationTime = new Date().getTime();
-        players.insertOne({
+        await players.insertOne({
           id,
-          creationTime,
           email,
           name,
           grade,
+          creationTime,
           latestKillTime: creationTime,
-          fastestKill: null,
-          target: {
-            id: "",
-            name: "",
-            grade: "",
-          },
+          fastestKill: Number.MAX_SAFE_INTEGER,
+          target: target.value,
           alive: true,
+          isTarget: false,
           kills: 0,
         });
 
@@ -128,7 +137,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           }
         );
 
-        reply.setCookie(JWT_COOKIE_NAME, token, cookieOpts);
+        reply.setCookie(JWT_PLAYER_COOKIE_NAME, token, COOKIE_OPTS);
         reply.generateCsrf();
 
         return {
@@ -137,13 +146,14 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           grade,
         };
       } catch (err) {
+        fastify.log.warn(err);
         reply.internalServerError("There was an error signing up a new player");
       }
     }
   );
 
   fastify.post<{ Body: Pick<IPlayer, "id"> }>(
-    "/player/login",
+    "/login",
     {
       schema: {
         body: {
@@ -151,6 +161,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           properties: {
             id: { type: "string" },
           },
+          required: ["id"],
         },
       },
     },
@@ -158,7 +169,10 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       if (!req.body) {
         return reply.badRequest("ID is required");
       }
-      const player = await players.findOne({ id: req.body.id });
+      const player = await players.findOne(
+        { id: req.body.id },
+        { projection: { "target.id": 0, "target._id": 0 } }
+      );
       if (!player) {
         return reply.notFound("Couldn't find id");
       }
@@ -175,13 +189,14 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         }
       );
 
-      reply.setCookie(JWT_COOKIE_NAME, token, cookieOpts);
+      reply.setCookie(JWT_PLAYER_COOKIE_NAME, token, COOKIE_OPTS);
       reply.generateCsrf();
 
       return {
         id: player.id,
         name: player.name,
         grade: player.grade,
+        target: player.target,
       };
     }
   );

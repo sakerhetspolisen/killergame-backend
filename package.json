@@ -9,7 +9,7 @@
   "engines": {
     "node": ">= 16.0.0"
   },
-  "types": "src/index.d.ts",
+  "types": "index.d.ts",
   "dependencies": {
     "@fastify/cookie": "^9.1.0",
     "@fastify/cors": "^8.0.0",
