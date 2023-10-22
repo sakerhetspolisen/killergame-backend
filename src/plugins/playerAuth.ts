@@ -140,6 +140,11 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         reply.setCookie(JWT_PLAYER_COOKIE_NAME, token, COOKIE_OPTS);
         reply.generateCsrf();
 
+        /**
+         * Attempt to send a welcome email with id using Mailgun
+         */
+        fastify.sendPlayerWelcomeEmail(name, email, id);
+
         return {
           id,
           name,

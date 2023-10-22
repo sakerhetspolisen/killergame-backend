@@ -1,5 +1,7 @@
 export const JWT_PLAYER_COOKIE_NAME: string = "token";
 export const JWT_ADMIN_COOKIE_NAME: string = "admin-token";
+export const EMAIL_SENDER_NAME = "Killergamekommittén";
+export const EMAIL_SENDER_ADDRESS = "support@killergameprocce.se";
 export const ALLOWED_GRADES = [
   "NA1B",
   "NA1A",

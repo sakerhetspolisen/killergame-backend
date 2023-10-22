@@ -17,6 +17,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { COOKIE_OPTS } from "./config/cookieOpts";
 import fastifyHelmet from "@fastify/helmet";
+import mailService from "./plugins/mailService";
 
 /**
  * Type declarations that extend fastify. These can't be moved to a
@@ -33,6 +34,7 @@ declare module "fastify" {
       req: FastifyRequest,
       reply: FastifyReply
     ) => void | Promise<void>;
+    sendPlayerWelcomeEmail: (name: string, email: string, id: string) => void;
   }
 
   interface FastifyRequest {
@@ -148,12 +150,15 @@ server.register(fastifyWebsocket, {
 });
 
 /**
- * The authorization-plugins used to authenticate and authorize admins
- * and players
+ * Here we register the pugins we've built ourselves
  */
 server.register(adminAuth);
 server.register(playerAuth);
+server.register(mailService);
 
+/**
+ * Registration of routes defined in other files
+ */
 server.register(player, { prefix: "/player" });
 server.register(stats, { prefix: "/stats" });
 server.register(admin, { prefix: "/admin" });
