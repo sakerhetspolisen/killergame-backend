@@ -72,16 +72,16 @@ declare module "@fastify/jwt" {
 const server = fastify({
   logger: true,
   ignoreTrailingSlash: true,
-  //  https: {
-  //    key:
-  //      process.env.NODE_ENV === "production"
-  //        ? readFileSync(path.join(__dirname, "..", "ssl.key"))
-  //        : undefined,
-  //    cert:
-  //      process.env.NODE_ENV === "production"
-  //        ? readFileSync(path.join(__dirname, "..", "ssl.cert"))
-  //        : undefined,
-  //  },
+  https: {
+    key:
+      process.env.NODE_ENV === "production"
+        ? readFileSync(`${process.env.SSL_CERT_DIR!}/privkey.pem`)
+        : undefined,
+    cert:
+      process.env.NODE_ENV === "production"
+        ? readFileSync(`${process.env.SSL_CERT_DIR!}/fullchain.pem`)
+        : undefined,
+  },
 });
 const port = Number(process.env.PORT) || 443;
 
