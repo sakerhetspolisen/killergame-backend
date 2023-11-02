@@ -24,8 +24,8 @@ const emailPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       from: `${EMAIL_SENDER_NAME} <${EMAIL_SENDER_ADDRESS}>`,
       to: `${name} <${
         email === "killergametesting.pch@procivitas.se"
-          ? email
-          : process.env.MAILGUN_DEV_TEST_ADDRESS!
+          ? process.env.MAILGUN_DEV_TEST_ADDRESS!
+          : email
       }>`,
       subject: `Du är redo för Killergame 2023.`,
       template: "killergame welcome email",
