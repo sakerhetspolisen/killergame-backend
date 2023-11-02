@@ -87,7 +87,7 @@ server.register(fastifySensible);
  * other types of requests than GET, POST and PUT.
  */
 server.register(fastifyCORS, {
-  origin: "http://localhost:3000",
+  origin: ["https://killerga.me", "https://www.killerga.me"],
   methods: ["GET", "POST", "PUT"],
   credentials: true,
 });
@@ -97,11 +97,10 @@ server.register(fastifyCORS, {
  * a rate limit of "max" requests per "timeWindow"
  */
 
-// TODO: Enable rate-limiting
-// server.register(fastifyRateLimit, {
-//   max: 84,
-//   timeWindow: "1 minute",
-// });
+server.register(fastifyRateLimit, {
+  max: 99,
+  timeWindow: "1 minute",
+});
 
 /**
  * Adds import security HTTP headers to all replies

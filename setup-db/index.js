@@ -1,5 +1,18 @@
 const { MongoClient } = require("mongodb");
+const bcrypt = require("bcrypt");
 require("dotenv").config();
+
+async function addAdmin(client) {
+  const db = client.db(process.env.MONGODB_DB_NAME);
+  const admins = db.collection(process.env.MONGODB_DB_TABLE_NAME_ADMINS);
+  const salt = await bcrypt.genSalt();
+  await admins.insertOne({
+    username: process.env.KILLERGAME_ADMIN,
+    pwdSalt: salt,
+    pwd: await bcrypt.hash(KILLERGAME_ADMIN_PWD, salt),
+    creationTime: new Date().getTime(),
+  });
+}
 
 async function updateStats(client) {
   console.log("Running iteration");
@@ -47,12 +60,24 @@ async function updateStats(client) {
     }
   }
 
-  // TODO: Aggregate killstats
-  const top10ByKills = null;
-  const top10ByKillTime = null;
+  const top10ByKills = await players
+    .aggregate([
+      { $match: { kills: { $gt: 0 } } },
+      { $sort: { kills: -1 } },
+      { $project: { name: 1, grade: 1, kills: 1, _id: 0 } },
+      { $limit: 10 },
+    ])
+    .toArray();
+  const top10ByKillTime = await players
+    .aggregate([
+      { $match: { fastestKill: { $lt: Number.MAX_SAFE_INTEGER } } },
+      { $sort: { fastestKill: 1 } },
+      { $project: { name: 1, grade: 1, fastestKill: 1, _id: 0 } },
+      { $limit: 10 },
+    ])
+    .toArray();
 
-  console.log(nOfPlayersTotal);
-  console.log(nOfPlayersFromEachGrade);
+  console.log(`We currently have ${nOfPlayersTotal} signed up players`);
 
   await stats.updateOne(
     {},
@@ -71,12 +96,16 @@ async function updateStats(client) {
     { upsert: true }
   );
   await client.close();
+  console.log("Stats updated");
 }
 
 async function main() {
   const uri = `mongodb://${process.env.MONGODB_ADMIN}:${process.env.MONGODB_ADMIN_PWD}@mongodb`;
-
   const client = new MongoClient(uri);
+
+  console.log("Adding admin user...");
+  await addAdmin(client);
+  console.log("Admin user successfully added\n");
 
   try {
     updateStats(client);
