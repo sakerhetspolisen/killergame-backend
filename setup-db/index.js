@@ -18,6 +18,7 @@ async function addDefaultSettings(client) {
   const db = client.db(process.env.MONGODB_DB_NAME);
   const game = db.collection(process.env.MONGODB_DB_TABLE_NAME_GAME);
   await game.insertOne({
+    type: "settings",
     isPaused: false,
     signupIsClosed: false,
   });
