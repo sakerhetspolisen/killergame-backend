@@ -146,7 +146,6 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         fastify.sendPlayerWelcomeEmail(name, id, email);
 
         return {
-          id,
           name,
           grade,
           email,

@@ -64,7 +64,7 @@ async function updateStats(client) {
   if (nOfPlayersFromEachGradeObj[0]) {
     for (const [key, value] of Object.entries(nOfPlayersFromEachGradeObj[0])) {
       nOfPlayersFromEachGrade.push({
-        grade: key,
+        grade: key.toUpperCase(),
         nOfPlayers: value,
       });
     }
