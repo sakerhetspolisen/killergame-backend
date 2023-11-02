@@ -1,0 +1,93 @@
+version: '3'
+services:
+  mongodb:
+    image: mongo:latest
+    restart: on-failure
+    environment:
+      # Creates an admin user used by 'app', credentials are found
+      # in the .env file
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMIN}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMIN_PWD}
+    ports:
+      - 27017:27017
+    # We want to report to the 'app' service when the db is ready to use
+    # because otherwise 'app' will attempt to connect using credentials 
+    # that eventually don't exist yet
+    healthcheck:
+      # Ping the database every 30th second, with a 10s interval
+      test: ["CMD", "mongosh", "--eval", "'db.runCommand(\"ping\").ok'", "--quiet"]
+      interval: 30s
+      timeout: 10s
+      # If not successful after 5 retries, 'app' will not start
+      retries: 5
+    networks:
+      - db-api
+
+  app:
+    image: node:18-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "9001"
+    working_dir: /app
+    # We create two seperate volumes so that we don't encounter errors
+    # in production where the node_modules folder may look different
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - VIRTUAL_HOST=api.killerga.me
+      - VIRTUAL_PORT=9001
+    networks:
+      - db-api
+      - api-proxy
+
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    depends_on:
+      - app
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      TRUST_DOWNSTREAM_PROXY: false
+      HTTPS_METHOD: redirect
+    volumes:
+      - conf:/etc/nginx/conf.d
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - api-proxy
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    depends_on:
+      - nginx-proxy
+    environment:
+      - DEFAULT_EMAIL=support@mail.killerga.me
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - certs:/etc/nginx/certs:rw
+      - acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - api-proxy
+
+volumes:
+  conf:
+  vhost:
+  certs:
+  acme:
+  html:
+
+networks:
+  db-api:
+  api-proxy:

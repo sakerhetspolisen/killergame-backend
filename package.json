@@ -1,6 +1,7 @@
 {
   "name": "killergame-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "Backend for the Killergame website.",
   "main": "index.js",
   "author": "Karl Sellergren",
   "license": "MIT",
@@ -8,21 +9,29 @@
   "engines": {
     "node": ">= 16.0.0"
   },
+  "types": "index.d.ts",
   "dependencies": {
+    "@fastify/caching": "^8.3.0",
+    "@fastify/cookie": "^9.1.0",
     "@fastify/cors": "^8.0.0",
-    "@fastify/jwt": "^6.3.2",
+    "@fastify/csrf-protection": "^6.3.0",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/jwt": "^7.2.2",
     "@fastify/mongodb": "^6.1.0",
-    "@fastify/rate-limit": "^7.2.0",
+    "@fastify/rate-limit": "^8.0.3",
     "@fastify/sensible": "^5.1.1",
-    "@types/node": "^18.0.6",
+    "@fastify/websocket": "^8.2.0",
+    "bcrypt": "^5.1.1",
     "dotenv": "^16.0.3",
     "fastify": "^4.2.1",
-    "fastify-plugin": "^4.3.0",
+    "fastify-plugin": "^4.5.1",
     "form-data": "^4.0.0",
-    "mailgun.js": "^8.0.1",
-    "winston": "^3.8.1"
+    "mailgun.js": "^9.3.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.1",
+    "@types/node": "^20.8.7",
+    "@types/ws": "^8.5.7",
     "@typescript-eslint/eslint-plugin": "^5.30.7",
     "@typescript-eslint/parser": "^5.30.7",
     "eslint": "^8.20.0",
@@ -34,7 +43,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node ./bin/index.js",
+    "start": "yarn build && node ./bin/index.js",
     "dev": "nodemon ./src/index.ts"
   }
 }
