@@ -19,10 +19,11 @@ const emailPlugin: FastifyPluginCallback = (fastify, opts, done) => {
     id: string,
     email: string
   ) {
+    if (email === "skipemailsend.pch@procivitas.se") return done();
     const emailComposeData = {
       from: `${EMAIL_SENDER_NAME} <${EMAIL_SENDER_ADDRESS}>`,
       to: `${name} <${
-        process.env.NODE_ENV === "production"
+        email === "killergametesting.pch@procivitas.se"
           ? email
           : process.env.MAILGUN_DEV_TEST_ADDRESS!
       }>`,

@@ -40,7 +40,17 @@ export default function admin(
 
     // Update all players
     for (let { _id, target } of allPlayersShuffled) {
-      await players.updateOne({ _id }, { $set: { target } });
+      await players.updateOne(
+        { _id },
+        {
+          $set: {
+            target: {
+              name: target.name,
+              grade: target.grade,
+            },
+          },
+        }
+      );
     }
     reply.send("Successfully randomized all targets");
   });
