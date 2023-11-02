@@ -59,12 +59,12 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
             .replace(".pch@procivitas.se", "") + ".pch@procivitas.se";
         const existingPlayer = await players.findOne({ email });
         if (existingPlayer) {
-          return reply.badRequest("Player already exists");
+          return reply.conflict("Player already exists");
         }
 
         // Check if grade is one of the allowed grade values
         if (!ALLOWED_GRADES.includes(req.body.grade.toUpperCase())) {
-          return reply.badRequest("Grade does not exist");
+          return reply.forbidden("Grade does not exist");
         }
 
         /**
