@@ -14,8 +14,17 @@ async function addAdmin(client) {
   });
 }
 
+async function addDefaultSettings(client) {
+  const db = client.db(process.env.MONGODB_DB_NAME);
+  const game = db.collection(process.env.MONGODB_DB_TABLE_NAME_GAME);
+  await game.insertOne({
+    isPaused: false,
+    signupIsClosed: false,
+  });
+}
+
 async function updateStats(client) {
-  console.log("Running iteration");
+  console.log("** Running iteration **");
   console.log("Attempting to connect to db");
   await client.connect();
   console.log("Connected.");
@@ -106,6 +115,10 @@ async function main() {
   console.log("Adding admin user...");
   await addAdmin(client);
   console.log("Admin user successfully added\n");
+
+  console.log("Setting default game settings...");
+  await addDefaultSettings(client);
+  console.log("Default settings added");
 
   try {
     updateStats(client);
