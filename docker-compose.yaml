@@ -16,10 +16,10 @@ services:
     healthcheck:
       # Ping the database every 30th second, with a 10s interval
       test: ["CMD", "mongosh", "--eval", "'db.runCommand(\"ping\").ok'", "--quiet"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       # If not successful after 5 retries, 'app' will not start
-      retries: 5
+      retries: 20
   
   setup-db:
     depends_on:
@@ -34,7 +34,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "443:443"
+      - "9001:9001"
     working_dir: /app
     # We create two seperate volumes so that we don't encounter errors
     # in production where the node_modules folder may look different
