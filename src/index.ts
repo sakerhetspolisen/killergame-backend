@@ -72,6 +72,7 @@ declare module "@fastify/jwt" {
 const server = fastify({
   logger: true,
   ignoreTrailingSlash: true,
+  http2: true,
   https: {
     key:
       process.env.NODE_ENV === "production"
