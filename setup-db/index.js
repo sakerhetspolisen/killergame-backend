@@ -9,7 +9,7 @@ async function addAdmin(client) {
   await admins.insertOne({
     username: process.env.KILLERGAME_ADMIN,
     pwdSalt: salt,
-    pwd: await bcrypt.hash(KILLERGAME_ADMIN_PWD, salt),
+    pwd: await bcrypt.hash(process.env.KILLERGAME_ADMIN_PWD, salt),
     creationTime: new Date().getTime(),
   });
 }
