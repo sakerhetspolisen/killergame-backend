@@ -18,6 +18,8 @@ import path from "path";
 import { COOKIE_OPTS } from "./config/cookieOpts";
 import fastifyHelmet from "@fastify/helmet";
 import mailService from "./plugins/mailService";
+import game from "./routes/game";
+import fastifyCaching from "@fastify/caching";
 
 /**
  * Type declarations that extend fastify. These can't be moved to a
@@ -34,7 +36,7 @@ declare module "fastify" {
       req: FastifyRequest,
       reply: FastifyReply
     ) => void | Promise<void>;
-    sendPlayerWelcomeEmail: (name: string, email: string, id: string) => void;
+    sendPlayerWelcomeEmail: (name: string, id: string, email: string) => void;
   }
 
   interface FastifyRequest {
@@ -51,13 +53,14 @@ declare module "fastify" {
 declare module "@fastify/jwt" {
   interface FastifyJWT {
     payload:
-      | { id: string; name: string; grade: string }
+      | { id: string; name: string; grade: string; email: string }
       | { id: string; username: string }; // payload type is used for signing and verifying
     user:
       | {
           id: string;
           name: string;
           grade: string;
+          email: string;
         }
       | {
           id: string;
@@ -84,23 +87,34 @@ server.register(fastifySensible);
  * other types of requests than GET, POST and PUT.
  */
 server.register(fastifyCORS, {
-  origin: ["127.0.0.1", "killergameprocce.se"],
+  origin: "http://localhost:3000",
   methods: ["GET", "POST", "PUT"],
+  credentials: true,
 });
 
 /**
  * To attempt to minimize the work-load of the server, we here define
  * a rate limit of "max" requests per "timeWindow"
  */
-server.register(fastifyRateLimit, {
-  max: 84,
-  timeWindow: "1 minute",
-});
+
+// TODO: Enable rate-limiting
+// server.register(fastifyRateLimit, {
+//   max: 84,
+//   timeWindow: "1 minute",
+// });
 
 /**
  * Adds import security HTTP headers to all replies
  */
 server.register(fastifyHelmet);
+
+/**
+ * Enables us to work with cache headers so that we prevent slow
+ * updates on the website.
+ */
+server.register(fastifyCaching, {
+  privacy: fastifyCaching.privacy.NOCACHE,
+});
 
 /**
  * Connector to MongoDB database
@@ -131,6 +145,9 @@ server.register(fastifyCookie, {
  * BUG: csrfOpts.hmacKey has to be passed in order for TS to not throw
  *      a type error when specifying @fastify/cookie as the
  *      "sessionPlugin"
+ *
+ * TODO: Add onRequest: fastify.csrfProtection, to all endpoints that
+ *       need protection.
  */
 server.register(fastifyCsrfProtection, {
   cookieOpts: COOKIE_OPTS,
@@ -159,6 +176,7 @@ server.register(mailService);
 /**
  * Registration of routes defined in other files
  */
+server.register(game);
 server.register(player, { prefix: "/player" });
 server.register(stats, { prefix: "/stats" });
 server.register(admin, { prefix: "/admin" });

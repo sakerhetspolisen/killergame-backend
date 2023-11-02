@@ -5,7 +5,7 @@ import { IAdmin } from "../interfaces/admin.interface";
 import bcrypt from "bcrypt";
 import { readFileSync } from "fs";
 import path from "path";
-import { JWT_ADMIN_COOKIE_NAME } from "../config/config";
+import { JWT_ADMIN_COOKIE_NAME } from "../config";
 import { COOKIE_OPTS } from "../config/cookieOpts";
 
 const adminAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
@@ -133,7 +133,6 @@ const adminAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       reply.generateCsrf();
 
       return {
-        id: user._id.toString(),
         username: user.username,
       };
     }

@@ -1,14 +1,15 @@
-import { FastifyPluginCallback, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyPluginCallback } from "fastify";
 import fp from "fastify-plugin";
 import FormData from "form-data";
 import Mailgun from "mailgun.js";
-import { EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME } from "../config/config";
+import { EMAIL_SENDER_ADDRESS, EMAIL_SENDER_NAME } from "../config";
 
 const emailPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   const mailgun = new Mailgun(FormData);
   const mgClient = mailgun.client({
-    username: process.env.MAILGUN_USERNAME!,
+    username: "api",
     key: process.env.MAILGUN_API_KEY!,
+    url: "https://api.eu.mailgun.net",
   });
 
   fastify.decorate("sendPlayerWelcomeEmail", sendPlayerWelcomeEmail);
@@ -20,12 +21,16 @@ const emailPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   ) {
     const emailComposeData = {
       from: `${EMAIL_SENDER_NAME} <${EMAIL_SENDER_ADDRESS}>`,
-      to: `${name} <${email}>`,
+      to: `${name} <${
+        process.env.NODE_ENV === "production"
+          ? email
+          : process.env.MAILGUN_DEV_TEST_ADDRESS!
+      }>`,
       subject: `Du är redo för Killergame 2023.`,
-      template: "name-of-the-template-you-made-in-mailgun-web-portal",
-      "t:variables": JSON.stringify({
+      template: "killergame welcome email",
+      "h:X-Mailgun-Variables": JSON.stringify({
         name,
-        id,
+        id: id.slice(0, 3) + " " + id.slice(3, 6),
       }),
     };
     try {

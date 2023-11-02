@@ -1,7 +1,11 @@
 import { IPlayer } from "./player.interface";
 
 export interface IDBStats {
-  nOfPlayers: number;
+  nOfPlayers: {
+    total: number;
+    dead: number;
+    alive: number;
+  };
   nOfPlayersFromEachGrade: Array<{
     grade: string;
     nOfPlayers: number;

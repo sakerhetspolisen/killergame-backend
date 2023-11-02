@@ -4,11 +4,10 @@ import fp from "fastify-plugin";
 import { readFileSync } from "fs";
 import path from "path";
 import { IPlayer } from "../interfaces/player.interface";
-import { ALLOWED_GRADES, JWT_PLAYER_COOKIE_NAME } from "../config/config";
+import { ALLOWED_GRADES, JWT_PLAYER_COOKIE_NAME } from "../config";
 import { COOKIE_OPTS } from "../config/cookieOpts";
 
 const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
-  const env = process.env.NODE_ENV;
   if (!fastify.mongo.db) return fastify.close();
   const players = fastify.mongo.db.collection(
     process.env.MONGODB_DB_TABLE_NAME_PLAYERS!
@@ -64,7 +63,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         }
 
         // Check if grade is one of the allowed grade values
-        if (!ALLOWED_GRADES.includes(req.body.grade)) {
+        if (!ALLOWED_GRADES.includes(req.body.grade.toUpperCase())) {
           return reply.badRequest("Grade does not exist");
         }
 
@@ -129,6 +128,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
             id,
             name,
             grade,
+            email,
           },
           {
             sign: {
@@ -143,12 +143,13 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         /**
          * Attempt to send a welcome email with id using Mailgun
          */
-        fastify.sendPlayerWelcomeEmail(name, email, id);
+        fastify.sendPlayerWelcomeEmail(name, id, email);
 
         return {
           id,
           name,
           grade,
+          email,
         };
       } catch (err) {
         fastify.log.warn(err);
@@ -186,6 +187,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           id: player.id,
           name: player.name,
           grade: player.grade,
+          email: player.email,
         },
         {
           sign: {
@@ -201,6 +203,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         id: player.id,
         name: player.name,
         grade: player.grade,
+        email: player.email,
         target: player.target,
       };
     }
