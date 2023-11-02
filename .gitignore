@@ -58,10 +58,6 @@ profile*
 *clinic*
 *flamegraph*
 
-# lock files
-yarn.lock
-package-lock.json
-
 # env files
 .env
 
