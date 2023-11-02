@@ -72,8 +72,18 @@ declare module "@fastify/jwt" {
 const server = fastify({
   logger: true,
   ignoreTrailingSlash: true,
+  //  https: {
+  //    key:
+  //      process.env.NODE_ENV === "production"
+  //        ? readFileSync(path.join(__dirname, "..", "ssl.key"))
+  //        : undefined,
+  //    cert:
+  //      process.env.NODE_ENV === "production"
+  //        ? readFileSync(path.join(__dirname, "..", "ssl.cert"))
+  //        : undefined,
+  //  },
 });
-const port = Number(process.env.PORT) || 9001;
+const port = Number(process.env.PORT) || 443;
 
 /**
  * Adds functionality to reply with HTTP status codes with a constant

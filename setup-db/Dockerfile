@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 FROM node:18-alpine
-WORKDIR /app
+WORKDIR /setup-db-app
 COPY package.json yarn.lock ./
 RUN yarn
 COPY . .
