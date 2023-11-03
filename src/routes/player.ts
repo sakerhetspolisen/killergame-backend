@@ -34,7 +34,7 @@ export default function player(
       }
       const player = await players.findOne(
         { id: request.user.id },
-        { projection: { target: 1, latestKillTime: 1 } }
+        { projection: { target: 1, latestKillTime: 1, alive: 1 } }
       );
       // TODO: Querying the game-db on every kill request can be improved
       const gameSettings = await game.findOne(
