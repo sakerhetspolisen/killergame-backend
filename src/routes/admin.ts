@@ -34,7 +34,6 @@ export default function admin(
       const newTargetObj = {
         ...allPlayersShuffled[i - (1 % l)],
       };
-      delete newTargetObj._id;
       allPlayersShuffled[i % l].target = newTargetObj;
     }
 
