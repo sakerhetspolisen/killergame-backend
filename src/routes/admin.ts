@@ -47,6 +47,8 @@ export default function admin(
             target: {
               name: target.name,
               grade: target.grade,
+              id: target.id,
+              _id: target._id,
             },
             isTarget: true,
           },
