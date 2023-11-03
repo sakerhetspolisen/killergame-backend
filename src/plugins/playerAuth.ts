@@ -12,6 +12,9 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   const players = fastify.mongo.db.collection(
     process.env.MONGODB_DB_TABLE_NAME_PLAYERS!
   );
+  const game = fastify.mongo.db.collection(
+    process.env.MONGODB_DB_TABLE_NAME_GAME!
+  );
 
   fastify.register(fastifyJwt, {
     secret: readFileSync(
@@ -51,6 +54,20 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       if (!req.body) {
         return reply.badRequest("Body is required");
       }
+
+      // TODO: Querying the game-db on every signup request can be improved
+      const gameSettings = await game.findOne(
+        { type: "settings" },
+        { projection: { signupIsClosed: 1 } }
+      );
+      if (
+        !gameSettings ||
+        gameSettings.signupIsClosed === true ||
+        gameSettings.signupIsClosed === undefined
+      ) {
+        return reply.serviceUnavailable("Signups are currently closed");
+      }
+
       try {
         const email: string =
           req.body.email
@@ -174,6 +191,20 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       if (!req.body) {
         return reply.badRequest("ID is required");
       }
+
+      // TODO: Querying the game-db on every login request can be improved
+      const gameSettings = await game.findOne(
+        { type: "settings" },
+        { projection: { isPaused: 1 } }
+      );
+      if (
+        !gameSettings ||
+        gameSettings.isPaused === true ||
+        gameSettings.isPaused === undefined
+      ) {
+        return reply.serviceUnavailable("Game is currently paused");
+      }
+
       const player = await players.findOne(
         { id: req.body.id },
         { projection: { "target.id": 0, "target._id": 0 } }

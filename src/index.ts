@@ -87,7 +87,10 @@ server.register(fastifySensible);
  * other types of requests than GET, POST and PUT.
  */
 server.register(fastifyCORS, {
-  origin: "https://killerga.me",
+  origin:
+    process.env.NODE_ENV === "production"
+      ? "https://killerga.me"
+      : "http://localhost:3000",
   methods: ["GET", "POST", "PUT"],
   credentials: true,
 });

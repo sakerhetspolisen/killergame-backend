@@ -49,7 +49,7 @@ export default function player(
         return reply.internalServerError("Couldn't find logged in player");
       }
       if (!player.alive) {
-        return reply.unauthorized("Player is not alive");
+        return reply.internalServerError("Player is not alive");
       }
       if (!player.target) {
         return reply.internalServerError("Player has no target");
@@ -62,7 +62,7 @@ export default function player(
         gameSettings.isPaused === true ||
         gameSettings.isPaused === undefined
       ) {
-        return reply.unauthorized("Game is currently paused");
+        return reply.serviceUnavailable("Game is currently paused");
       }
 
       /**
