@@ -22,7 +22,10 @@ export default function admin(
   // with a new target, so be aware that it is resource-intensive.
   fastify.get("/game/randTargets", async (request, reply) => {
     const allPlayers = await players
-      .find({}, { projection: { _id: 1, id: 1, name: 1, grade: 1 } })
+      .find(
+        { alive: true },
+        { projection: { _id: 1, id: 1, name: 1, grade: 1 } }
+      )
       .toArray();
     const allPlayersShuffled = shuffleArray(allPlayers);
     const l = allPlayersShuffled.length;
@@ -64,7 +67,10 @@ export default function admin(
     // email in the object. These are the only values we'll need when
     // debugging
     const allPlayers = await players
-      .find({}, { projection: { _id: 1, id: 1, target: 1, email: 1 } })
+      .find(
+        { alive: true },
+        { projection: { _id: 1, id: 1, target: 1, email: 1 } }
+      )
       .toArray();
 
     // Define arrays for every check that is made

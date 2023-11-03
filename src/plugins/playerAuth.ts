@@ -108,7 +108,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
          * 'target' becomes null.
          */
         const target = await players.findOneAndUpdate(
-          { isTarget: false },
+          { isTarget: false, alive: true },
           { $set: { isTarget: true } },
           { projection: { name: 1, id: 1, grade: 1 } }
         );
@@ -211,6 +211,9 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       );
       if (!player) {
         return reply.notFound("Couldn't find id");
+      }
+      if (!player.alive) {
+        return reply.unauthorized("Player is dead");
       }
       const token = await reply.playerJWTSign(
         {
