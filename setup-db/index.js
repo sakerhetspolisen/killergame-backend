@@ -38,6 +38,7 @@ async function updateStats(client) {
 
   const nOfPlayersFromEachGradeObj = await players
     .aggregate([
+      { $match: { alive: true } },
       {
         $group: {
           _id: { $toLower: "$grade" },
@@ -72,7 +73,7 @@ async function updateStats(client) {
 
   const top10ByKills = await players
     .aggregate([
-      { $match: { kills: { $gt: 0 } } },
+      { $match: { kills: { $gt: 0 }, alive: true } },
       { $sort: { kills: -1 } },
       { $project: { name: 1, grade: 1, kills: 1, _id: 0 } },
       { $limit: 10 },
@@ -80,7 +81,9 @@ async function updateStats(client) {
     .toArray();
   const top10ByKillTime = await players
     .aggregate([
-      { $match: { fastestKill: { $lt: Number.MAX_SAFE_INTEGER } } },
+      {
+        $match: { fastestKill: { $lt: Number.MAX_SAFE_INTEGER }, alive: true },
+      },
       { $sort: { fastestKill: 1 } },
       { $project: { name: 1, grade: 1, fastestKill: 1, _id: 0 } },
       { $limit: 10 },
@@ -88,6 +91,7 @@ async function updateStats(client) {
     .toArray();
 
   console.log(`We currently have ${nOfPlayersTotal} signed up players`);
+  console.log(`${nOfPlayersTotal - nOfPlayersAlive} players have been killed`);
 
   await stats.updateOne(
     {},

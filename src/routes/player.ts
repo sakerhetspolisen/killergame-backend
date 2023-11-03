@@ -76,6 +76,7 @@ export default function player(
             target: null,
             alive: false,
             killedBy: request.user.id,
+            isTarget: false,
           },
         },
         { projection: { target: 1 } }
