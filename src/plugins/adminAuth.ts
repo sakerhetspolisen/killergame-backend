@@ -138,6 +138,11 @@ const adminAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
     }
   );
 
+  fastify.post("/admin/logout", {}, async (req, reply) => {
+    reply.clearCookie(JWT_ADMIN_COOKIE_NAME, { path: COOKIE_OPTS.path });
+    reply.send("Successfully signed out");
+  });
+
   async function authorize(req: FastifyRequest, reply: FastifyReply) {
     try {
       await req.adminJWTVerify();
