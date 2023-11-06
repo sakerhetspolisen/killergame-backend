@@ -21,6 +21,7 @@ async function addDefaultSettings(client) {
     type: "settings",
     isPaused: true,
     signupIsClosed: false,
+    killValue: 1,
   });
 }
 

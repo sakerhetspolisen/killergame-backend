@@ -302,5 +302,45 @@ export default function admin(
     }
   );
 
+  /**
+   * Endpoint for pausing and unpausing the game
+   */
+  fastify.post<{ Body: { killValue: number } }>(
+    "/game/setKillValue",
+    {
+      schema: {
+        body: {
+          type: "object",
+          properties: {
+            killValue: { type: "integer" },
+          },
+          required: ["killValue"],
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!request.body || typeof request.body.killValue !== "number") {
+        return reply.badRequest("Body should include integer killValue");
+      }
+      const { killValue } = request.body;
+      try {
+        /**
+         * Setting upsert to true creates a new document with the supplied
+         * data if it doesn't exist
+         */
+        await game.updateOne(
+          { type: "settings" },
+          { $set: { killValue } },
+          { upsert: true }
+        );
+      } catch (error) {
+        return reply.internalServerError(
+          "There was an error setting a new kill value"
+        );
+      }
+      return { killValue };
+    }
+  );
+
   done();
 }

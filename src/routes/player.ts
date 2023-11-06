@@ -39,7 +39,7 @@ export default function player(
       // TODO: Querying the game-db on every kill request can be improved
       const gameSettings = await game.findOne(
         { type: "settings" },
-        { projection: { isPaused: 1 } }
+        { projection: { isPaused: 1, killValue: 1 } }
       );
 
       /**
@@ -87,6 +87,7 @@ export default function player(
 
       const currentTime = new Date().getTime();
       const killTime = currentTime - player.latestKillTime;
+      const nOfKillsToIncrement = gameSettings.killValue || 1;
       await players.updateOne(
         { id: request.user.id },
         {
@@ -97,7 +98,7 @@ export default function player(
           $min: {
             fastestKill: killTime,
           },
-          $inc: { kills: 1 },
+          $inc: { kills: nOfKillsToIncrement },
         }
       );
       return target.value
