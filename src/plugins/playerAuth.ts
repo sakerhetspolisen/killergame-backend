@@ -237,6 +237,8 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         name: player.name,
         grade: player.grade,
         email: player.email,
+        kills: player.kills,
+        fastestKill: player.fastestKill,
         target: player.target,
       };
     }
