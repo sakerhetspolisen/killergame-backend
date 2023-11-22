@@ -32,16 +32,24 @@ export default function player(
       if (!request.body) {
         return reply.badRequest("Body is required");
       }
-      const player = await players.findOne(
-        { id: request.user.id },
-        { projection: { target: 1, latestKillTime: 1, alive: 1 } }
-      );
+
       // TODO: Querying the game-db on every kill request can be improved
       const gameSettings = await game.findOne(
         { type: "settings" },
         { projection: { isPaused: 1, killValue: 1 } }
       );
+      if (
+        !gameSettings ||
+        gameSettings.isPaused === true ||
+        gameSettings.isPaused === undefined
+      ) {
+        return reply.serviceUnavailable("Game is currently paused");
+      }
 
+      const player = await players.findOne(
+        { id: request.user.id },
+        { projection: { target: 1, latestKillTime: 1, alive: 1 } }
+      );
       /**
        * Initial player and request checks
        */
@@ -56,13 +64,6 @@ export default function player(
       }
       if (request.body.id !== player.target.id) {
         return reply.badRequest("Target ID is incorrect");
-      }
-      if (
-        !gameSettings ||
-        gameSettings.isPaused === true ||
-        gameSettings.isPaused === undefined
-      ) {
-        return reply.serviceUnavailable("Game is currently paused");
       }
 
       /**
