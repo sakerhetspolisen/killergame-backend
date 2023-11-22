@@ -199,7 +199,7 @@ export default function admin(
   // Since we choose to have several values to unique identify a
   // a player, "_id", "id", and "email" will throw an error if
   // included in the request.
-  //
+  /*
   fastify.put<{
     Body: Omit<IDBPlayer, "_id" | "id" | "email" | "creationTime">;
     Params: Pick<IPlayer, "id">;
@@ -244,6 +244,7 @@ export default function admin(
       }
     }
   );
+  */
 
   /**
    * Endpoint for deleting all players
