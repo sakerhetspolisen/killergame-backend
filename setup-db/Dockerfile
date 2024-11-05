@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM node:18-alpine
+FROM node:alpine
 WORKDIR /setup-db-app
-COPY package.json yarn.lock ./
-RUN yarn
+COPY package.json package-lock.json ./
+RUN npm install
 COPY . .
-CMD ["yarn", "start"]
+CMD ["npm", "run", "start"]
