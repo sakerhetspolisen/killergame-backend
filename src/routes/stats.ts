@@ -1,5 +1,6 @@
 import { FastifyError, FastifyInstance, FastifyServerOptions } from "fastify";
 import { randomUUID } from "crypto";
+import { WebSocket } from "ws";
 import { STATS_POLLING_INTERVAL_IN_SECONDS } from "../config";
 
 export default async function stats(
@@ -16,7 +17,7 @@ export default async function stats(
    * iterate over them once we receive new data from the collection. This isn't
    * ideal, but works because we have a relatively small amount of clients.
    */
-  const connectedClients = new Map();
+  const connectedClients: Map<string, WebSocket> = new Map();
   /**
    * Stats is stored in its own collection as the first and only document.
    * We omit the _id value.
@@ -30,15 +31,20 @@ export default async function stats(
       fastify.log.error("Error fetching data from MongoDB:", error);
     }
     try {
-      for (const socket of connectedClients.values()) {
-        socket.send(JSON.stringify(latestStatsObj));
+      for (const [clientID, socket] of connectedClients.entries()) {
+        try {
+          socket.send(JSON.stringify(latestStatsObj));
+        } catch (error) {
+          fastify.log.error(`Error sending data to client ${clientID}:`, error);
+          connectedClients.delete(clientID);
+        }
       }
     } catch (error) {
       fastify.log.error("Error sending latest stats data to clients: ", error);
     }
   }, STATS_POLLING_INTERVAL_IN_SECONDS * 1000);
 
-  fastify.get("/", { websocket: true }, (socket, req) => {
+  fastify.get("/", { websocket: true }, (socket: WebSocket, req) => {
     /***
      * We generate a "random-enough" client-id that will serve as a unique
      * identifier if we want to serve individual clients in the future
@@ -51,6 +57,10 @@ export default async function stats(
     socket.on("close", () => {
       connectedClients.delete(clientID);
       fastify.log.info(`WS DISCONNECT: ${clientID}`);
+    });
+    socket.on("error", () => {
+      connectedClients.delete(clientID);
+      fastify.log.info(`WS ERROR: ${clientID}`);
     });
   });
 }
