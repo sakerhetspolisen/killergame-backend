@@ -82,7 +82,7 @@ export default function player(
         },
         { projection: { target: 1 } }
       );
-      if (!target.value) {
+      if (!target || !target.value) {
         return reply.internalServerError("Couldn't find target");
       }
 

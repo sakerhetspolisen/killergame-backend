@@ -8,8 +8,6 @@ services:
       # in the .env file
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMIN}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMIN_PWD}
-    ports:
-      - 27017:27017
     # We want to report to the 'app' service when the db is ready to use
     # because otherwise 'app' will attempt to connect using credentials 
     # that eventually don't exist yet
@@ -34,7 +32,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "9001:9001"
+      - 9002:9002
     working_dir: /app
     # We create two seperate volumes so that we don't encounter errors
     # in production where the node_modules folder may look different

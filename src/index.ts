@@ -73,7 +73,7 @@ const server = fastify({
   logger: true,
   ignoreTrailingSlash: true,
 });
-const port = Number(process.env.PORT) || 9001;
+const port = Number(process.env.PORT) || 9002;
 
 /**
  * Adds functionality to reply with HTTP status codes with a constant

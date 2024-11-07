@@ -2,7 +2,7 @@ import fastifyJwt from "@fastify/jwt";
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { IAdmin } from "../interfaces/admin.interface";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { readFileSync } from "fs";
 import path from "path";
 import { JWT_ADMIN_COOKIE_NAME } from "../config";

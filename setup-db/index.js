@@ -1,5 +1,5 @@
 const { MongoClient } = require("mongodb");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
 async function addAdmin(client) {
@@ -9,7 +9,9 @@ async function addAdmin(client) {
   await admins.insertOne({
     username: process.env.KILLERGAME_ADMIN,
     pwdSalt: salt,
-    pwd: await bcrypt.hash(process.env.KILLERGAME_ADMIN_PWD, salt),
+    pwd: await bcrypt
+      .hash(process.env.KILLERGAME_ADMIN_PWD, salt)
+      .then((s) => s),
     creationTime: new Date().getTime(),
   });
 }

@@ -134,7 +134,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           creationTime,
           latestKillTime: creationTime,
           fastestKill: Number.MAX_SAFE_INTEGER,
-          target: target.value,
+          ...(target && { target: target.value }),
           alive: true,
           isTarget: false,
           kills: 0,

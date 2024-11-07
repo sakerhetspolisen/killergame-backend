@@ -4,8 +4,7 @@ import { STATS_POLLING_INTERVAL_IN_SECONDS } from "../config";
 
 export default async function stats(
   fastify: FastifyInstance,
-  options: FastifyServerOptions,
-  done: (err?: FastifyError) => void
+  options: FastifyServerOptions
 ) {
   if (!fastify.mongo.db) return fastify.close();
   const stats = fastify.mongo.db.collection(
@@ -39,21 +38,19 @@ export default async function stats(
     }
   }, STATS_POLLING_INTERVAL_IN_SECONDS * 1000);
 
-  fastify.get("/", { websocket: true }, async (connection, req) => {
+  fastify.get("/", { websocket: true }, (socket, req) => {
     /***
      * We generate a "random-enough" client-id that will serve as a unique
      * identifier if we want to serve individual clients in the future
      */
     const clientID = randomUUID();
-    connectedClients.set(clientID, connection.socket);
+    connectedClients.set(clientID, socket);
     fastify.log.info(`WS CONNECT: ${clientID}`);
     // We send an initial payload
-    connection.socket.send(JSON.stringify(latestStatsObj));
-    connection.socket.on("close", () => {
+    socket.send(JSON.stringify(latestStatsObj));
+    socket.on("close", () => {
       connectedClients.delete(clientID);
       fastify.log.info(`WS DISCONNECT: ${clientID}`);
     });
   });
-
-  done();
 }
