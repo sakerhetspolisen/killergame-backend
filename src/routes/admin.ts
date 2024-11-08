@@ -1,5 +1,5 @@
 import { FastifyError, FastifyInstance, FastifyServerOptions } from "fastify";
-import { IDBPlayer, IPlayer, PlayerID } from "../interfaces/player.interface";
+import { IPlayer, PlayerID } from "../interfaces/player.interface";
 import shuffleArray from "../utils/shuffleArray";
 
 export default function admin(
@@ -300,6 +300,48 @@ export default function admin(
         );
       }
       return { isPaused };
+    }
+  );
+
+  /**
+   * Endpoint for opening and closing signup
+   */
+  fastify.post<{ Body: { isClosed: boolean } }>(
+    "/game/setSignupClosed",
+    {
+      schema: {
+        body: {
+          type: "object",
+          properties: {
+            isClosed: { type: "boolean" },
+          },
+          required: ["isClosed"],
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!request.body || typeof request.body.isClosed !== "boolean") {
+        return reply.badRequest("Body should include boolean isClosed");
+      }
+      const { isClosed } = request.body;
+      try {
+        /**
+         * Setting upsert to true creates a new document with the supplied
+         * data if it doesn't exist
+         */
+        await game.updateOne(
+          { type: "settings" },
+          { $set: { signupIsClosed: isClosed } },
+          { upsert: true }
+        );
+      } catch (error) {
+        return reply.internalServerError(
+          isClosed
+            ? "There was an error closing the signup"
+            : "There was an error opening the signup"
+        );
+      }
+      return { isClosed };
     }
   );
 
