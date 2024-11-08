@@ -19,16 +19,15 @@ const emailPlugin: FastifyPluginCallback = (fastify, opts, done) => {
     id: string,
     email: string
   ) {
-    if (email === "skipemailsend.pch@procivitas.se") return done();
     const emailComposeData = {
       from: `${EMAIL_SENDER_NAME} <${EMAIL_SENDER_ADDRESS}>`,
       to: `${name} <${
-        email === "killergametesting.pch@procivitas.se"
+        email.includes(process.env.MAILGUN_DEV_TEST_ADDRESS!)
           ? process.env.MAILGUN_DEV_TEST_ADDRESS!
           : email
       }>`,
-      subject: `Du är redo för Killergame 2023.`,
-      template: "killergame welcome email",
+      subject: `Du är redo för Killergame 2024 \uD83E\uDDE3\uD83E\uDEA8`,
+      template: "player welcome email",
       "h:X-Mailgun-Variables": JSON.stringify({
         name,
         id: id.slice(0, 3) + " " + id.slice(3, 6),
