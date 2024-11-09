@@ -85,7 +85,7 @@ async function updateStats(client) {
   const top10ByKillTime = await players
     .aggregate([
       {
-        $match: { fastestKill: { $lt: Number.MAX_SAFE_INTEGER }, alive: true },
+        $match: { fastestKill: { $lt: Number.MAX_SAFE_INTEGER } },
       },
       { $sort: { fastestKill: 1 } },
       { $project: { name: 1, grade: 1, fastestKill: 1, _id: 0 } },
@@ -93,6 +93,7 @@ async function updateStats(client) {
     ])
     .toArray();
 
+  console.log(top10ByKills);
   console.log(`We currently have ${nOfPlayersTotal} signed up players`);
   console.log(`${nOfPlayersTotal - nOfPlayersAlive} players have been killed`);
 
