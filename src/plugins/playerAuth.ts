@@ -126,6 +126,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         const grade: string = req.body.grade.toUpperCase();
 
         const creationTime = new Date().getTime();
+        console.log(target);
         await players.insertOne({
           id,
           email,

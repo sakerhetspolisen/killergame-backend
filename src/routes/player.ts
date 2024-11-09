@@ -82,8 +82,7 @@ export default function player(
         },
         { projection: { target: 1 } }
       );
-      if (!target || !target.value) {
-        console.log(target);
+      if (!target || !target.target) {
         return reply.internalServerError("Couldn't find target");
       }
 
@@ -94,7 +93,7 @@ export default function player(
         { id: request.user.id },
         {
           $set: {
-            target: target.value.target,
+            target: target.target.target,
             latestKillTime: currentTime,
           },
           $min: {
@@ -103,11 +102,11 @@ export default function player(
           $inc: { kills: nOfKillsToIncrement },
         }
       );
-      return target.value
+      return target.target
         ? {
             target: {
-              name: target.value.target.name,
-              grade: target.value.target.grade,
+              name: target.target.target.name,
+              grade: target.target.target.grade,
             },
           }
         : {};
