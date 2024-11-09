@@ -84,6 +84,9 @@ export default function player(
       );
 
       if (!currentTarget || !currentTarget.target) {
+        console.log("currentTarget: " + currentTarget);
+        if (currentTarget)
+          console.log("currentTarget.target: " + currentTarget.target);
         return reply.internalServerError("Couldn't find target");
       }
 
