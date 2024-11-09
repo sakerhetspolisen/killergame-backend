@@ -26,7 +26,7 @@ const emailPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           ? process.env.MAILGUN_DEV_TEST_ADDRESS!
           : email
       }>`,
-      subject: `Du är redo för Killergame 2024 \uD83E\uDDE3\uD83E\uDEA8`,
+      subject: `Du är redo för Killergame 2024 \ud83e\ude78\ud83e\ude93`,
       template: "player welcome email",
       "h:X-Mailgun-Variables": JSON.stringify({
         name,
