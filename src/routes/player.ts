@@ -66,6 +66,10 @@ export default function player(
         return reply.badRequest("Target ID is incorrect");
       }
 
+      // Log for debugging
+      console.log("Player Target ID:", player.target.id);
+      console.log("Request Body ID:", request.body.id);
+
       /**
        * Attempt to find target in database, mainly to update the 'alive'
        * field and to make the logged-in player inherit the targets target.
@@ -82,7 +86,10 @@ export default function player(
         },
         { projection: { target: 1 } }
       );
-      if (!target || !target.target) {
+
+      // Log for debugging
+      console.log(target);
+      if (!target || !target.value) {
         return reply.internalServerError("Couldn't find target");
       }
 
@@ -93,7 +100,7 @@ export default function player(
         { id: request.user.id },
         {
           $set: {
-            target: target.target.target,
+            target: target.value.target,
             latestKillTime: currentTime,
           },
           $min: {
@@ -102,11 +109,11 @@ export default function player(
           $inc: { kills: nOfKillsToIncrement },
         }
       );
-      return target.target
+      return target.value
         ? {
             target: {
-              name: target.target.target.name,
-              grade: target.target.target.grade,
+              name: target.value.target.name,
+              grade: target.value.target.grade,
             },
           }
         : {};
