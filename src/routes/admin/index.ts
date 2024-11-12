@@ -293,7 +293,11 @@ export default function admin(
       }
 
       try {
-        return await players.db.findOneAndUpdate({ id }, { $set: updateData });
+        return await players.db.findOneAndUpdate(
+          { id },
+          { $set: updateData },
+          { returnDocument: "after" }
+        );
       } catch (error) {
         reply.internalServerError("Couldn't update player");
       }
