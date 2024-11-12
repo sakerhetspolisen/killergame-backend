@@ -1,7 +1,7 @@
 import { FastifyError, FastifyInstance, FastifyServerOptions } from "fastify";
 import { randomUUID } from "crypto";
 import { WebSocket } from "ws";
-import { STATS_POLLING_INTERVAL_IN_SECONDS } from "../config";
+import { STATS_POLLING_INTERVAL_IN_SECONDS } from "../../config";
 
 export default async function stats(
   fastify: FastifyInstance,
