@@ -20,6 +20,7 @@ import fastifyHelmet from "@fastify/helmet";
 import mailService from "./plugins/mailService";
 import game from "./routes/game";
 import fastifyCaching from "@fastify/caching";
+import getAllRoutes from "./plugins/getAllRoutes";
 
 /**
  * Type declarations that extend fastify. These can't be moved to a
@@ -175,6 +176,9 @@ server.register(adminAuth);
 server.register(playerAuth);
 server.register(mailService);
 
+// For debuggin purposes
+server.register(getAllRoutes);
+
 /**
  * Registration of routes defined in other files
  */
@@ -189,6 +193,4 @@ server.listen({ port: port, host: "0.0.0.0" }, (err, address) => {
     process.exit(1);
   }
 });
-
-console.log(server.printRoutes());
-console.log("v9");
+console.log("v10");
