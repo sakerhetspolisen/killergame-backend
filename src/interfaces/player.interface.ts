@@ -1,6 +1,6 @@
 import { ObjectId } from "@fastify/mongodb";
 
-export type PlayerID = number;
+export type PlayerID = string;
 
 export interface IPlayer {
   name: string;
@@ -11,10 +11,16 @@ export interface IPlayer {
   fastestKill: number;
 }
 
+export type TargetPlayer = Pick<IPlayer, "id" | "grade" | "name"> & {
+  _id: ObjectId;
+};
+
 export interface IDBPlayer extends IPlayer {
   _id: ObjectId;
-  creationTime: Date;
-  latestKillTime: Date;
-  target: Pick<IPlayer, "id" | "grade" | "name">;
+  creationTime: number;
+  latestKillTime: number;
+  target: TargetPlayer;
   alive: boolean;
+  killedBy: string;
+  isTarget: boolean;
 }

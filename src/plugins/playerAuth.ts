@@ -3,17 +3,19 @@ import { FastifyPluginCallback, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { readFileSync } from "fs";
 import path from "path";
-import { IPlayer } from "../interfaces/player.interface";
+import { IPlayer, TargetPlayer } from "../interfaces/player.interface";
 import { ALLOWED_GRADES, JWT_PLAYER_COOKIE_NAME } from "../config";
 import { COOKIE_OPTS } from "../config/cookieOpts";
+import Players from "../models/players";
+import Game from "../models/game";
 
 const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   if (!fastify.mongo.db) return fastify.close();
-  const players = fastify.mongo.db.collection(
-    process.env.MONGODB_DB_TABLE_NAME_PLAYERS!
+  const players = new Players(
+    fastify.mongo.db.collection(process.env.MONGODB_DB_TABLE_NAME_PLAYERS!)
   );
-  const game = fastify.mongo.db.collection(
-    process.env.MONGODB_DB_TABLE_NAME_GAME!
+  const game = new Game(
+    fastify.mongo.db.collection(process.env.MONGODB_DB_TABLE_NAME_GAME!)
   );
 
   fastify.register(fastifyJwt, {
@@ -55,16 +57,9 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         return reply.badRequest("Body is required");
       }
 
-      // TODO: Querying the game-db on every signup request can be improved
-      const gameSettings = await game.findOne(
-        { type: "settings" },
-        { projection: { signupIsClosed: 1 } }
-      );
-      if (
-        !gameSettings ||
-        gameSettings.signupIsClosed === true ||
-        gameSettings.signupIsClosed === undefined
-      ) {
+      // Check game status
+      const { signupIsClosed } = await game.getSettings();
+      if (signupIsClosed) {
         return reply.serviceUnavailable("Signups are currently closed");
       }
 
@@ -73,8 +68,8 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           req.body.email
             .replaceAll(" ", "")
             .toLowerCase()
-            .replace(".pch@procivitas.se", "") + ".pch@procivitas.se";
-        const existingPlayer = await players.findOne({ email });
+            .replaceAll(".pch@procivitas.se", "") + ".pch@procivitas.se";
+        const existingPlayer = await players.getPlayerByEmail(email);
         if (existingPlayer) {
           return reply.conflict("Player already exists");
         }
@@ -100,14 +95,14 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           if (retries >= MAX_ID_GEN_RETRIES) {
             return reply.internalServerError("Failed to generate a unique id");
           }
-        } while (await players.findOne({ id }));
+        } while (await players.getPlayerById(id));
 
         /**
          * We attempt to generate a target for the player by checking if there
          * are any un-assigned players in the database. If we can't find any,
          * 'target' becomes null.
          */
-        const target = await players.findOneAndUpdate(
+        const target = await players.db.findOneAndUpdate(
           { isTarget: false, alive: true },
           { $set: { isTarget: true } },
           { projection: { name: 1, id: 1, grade: 1 } }
@@ -126,7 +121,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         const grade: string = req.body.grade.toUpperCase();
 
         const creationTime = new Date().getTime();
-        await players.insertOne({
+        await players.db.insertOne({
           id,
           email,
           name,
@@ -134,7 +129,7 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
           creationTime,
           latestKillTime: creationTime,
           fastestKill: Number.MAX_SAFE_INTEGER,
-          ...(target && { target: target.value }),
+          target,
           alive: true,
           isTarget: false,
           kills: 0,
@@ -192,20 +187,13 @@ const playerAuthPlugin: FastifyPluginCallback = (fastify, opts, done) => {
         return reply.badRequest("ID is required");
       }
 
-      // TODO: Querying the game-db on every login request can be improved
-      const gameSettings = await game.findOne(
-        { type: "settings" },
-        { projection: { isPaused: 1 } }
-      );
-      if (
-        !gameSettings ||
-        gameSettings.isPaused === true ||
-        gameSettings.isPaused === undefined
-      ) {
+      // Check game status
+      const { isPaused } = await game.getSettings();
+      if (isPaused) {
         return reply.serviceUnavailable("Game is currently paused");
       }
 
-      const player = await players.findOne(
+      const player = await players.db.findOne(
         { id: req.body.id },
         { projection: { "target.id": 0, "target._id": 0 } }
       );

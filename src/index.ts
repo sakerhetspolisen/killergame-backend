@@ -90,7 +90,7 @@ server.register(fastifyCORS, {
   origin:
     process.env.NODE_ENV === "production"
       ? "https://killerga.me"
-      : "http://localhost:3000",
+      : "https://localhost:3000",
   methods: ["GET", "POST", "PUT"],
   credentials: true,
 });
@@ -189,3 +189,5 @@ server.listen({ port: port, host: "0.0.0.0" }, (err, address) => {
     process.exit(1);
   }
 });
+
+console.log("v8");
