@@ -196,18 +196,19 @@ export default function admin(
    * a player, "_id", "id", and "email" will throw an error if
    * included in the request.
    */
-  fastify.post<{
+  fastify.put<{
     Body: Pick<IDBPlayer, "name" | "grade" | "kills" | "alive">;
-    Querystring: Partial<Pick<IPlayer, "id">>;
+    Params: Pick<IPlayer, "id">;
   }>(
-    "/game/player",
+    "/game/player/:id",
     {
       schema: {
-        querystring: {
+        params: {
           type: "object",
           properties: {
             id: { type: "string" },
           },
+          required: ["id"],
         },
         body: {
           type: "object",
@@ -221,7 +222,7 @@ export default function admin(
       },
     },
     async (request, reply) => {
-      const { id } = request.query;
+      const { id } = request.params;
       const { name, grade, kills, alive } = request.body || {};
 
       // Validate ID presence

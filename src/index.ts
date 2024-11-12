@@ -190,4 +190,5 @@ server.listen({ port: port, host: "0.0.0.0" }, (err, address) => {
   }
 });
 
-console.log("v8");
+console.log(server.printRoutes());
+console.log("v9");
