@@ -197,7 +197,7 @@ export default function admin(
    * included in the request.
    */
   fastify.put<{
-    Body: Pick<IDBPlayer, "name" | "grade" | "kills" | "alive">;
+    Body: Pick<IDBPlayer, "name" | "grade" | "kills" | "alive" | "email">;
     Params: Pick<IPlayer, "id">;
   }>(
     "/game/player/:id",
@@ -217,13 +217,14 @@ export default function admin(
             grade: { type: "string" },
             kills: { type: "integer" },
             alive: { type: "boolean" },
+            email: { type: "string" },
           },
         },
       },
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { name, grade, kills, alive } = request.body || {};
+      const { name, grade, kills, alive, email } = request.body || {};
 
       // Validate ID presence
       if (!id) {
@@ -244,6 +245,18 @@ export default function admin(
       if (typeof grade === "string") updateData.grade = grade;
       if (typeof kills === "number") updateData.kills = kills;
       if (typeof alive === "boolean") updateData.alive = alive;
+
+      // Special handling for email change
+      if (typeof email === "string" && email !== player.email) {
+        const emailExists = (await players.db.findOne({ email })) !== null;
+        if (emailExists) return reply.badRequest("Email exists already");
+        updateData.email = email;
+        fastify.sendPlayerWelcomeEmail(
+          updateData.name ?? player.name,
+          id,
+          updateData.email
+        );
+      }
 
       // Special handling for changes in kills
       if (kills !== undefined) {
