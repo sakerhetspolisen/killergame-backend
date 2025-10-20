@@ -1,4 +1,3 @@
-version: '3'
 services:
   mongodb:
     image: mongo:latest
@@ -9,7 +8,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ADMIN}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ADMIN_PWD}
     # We want to report to the 'app' service when the db is ready to use
-    # because otherwise 'app' will attempt to connect using credentials 
+    # because otherwise 'app' will attempt to connect using credentials
     # that eventually don't exist yet
     healthcheck:
       # Ping the database every 30th second, with a 10s interval
@@ -18,7 +17,7 @@ services:
       timeout: 10s
       # If not successful after 5 retries, 'app' will not start
       retries: 20
-  
+
   setup-db:
     depends_on:
       mongodb:
