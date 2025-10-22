@@ -31,7 +31,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 9002:9002
+      - 127.0.0.1:9002:9002
     working_dir: /app
     # We create two seperate volumes so that we don't encounter errors
     # in production where the node_modules folder may look different
@@ -39,5 +39,5 @@ services:
       - ./:/app
       - /app/node_modules
     depends_on:
-      setup-db:
-        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
