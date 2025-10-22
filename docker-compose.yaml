@@ -39,5 +39,5 @@ services:
       - ./:/app
       - /app/node_modules
     depends_on:
-      mongodb:
-        condition: service_healthy
+      setup-db:
+        condition: service_completed_successfully
