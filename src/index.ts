@@ -73,6 +73,7 @@ declare module "@fastify/jwt" {
 const server = fastify({
   logger: true,
   ignoreTrailingSlash: true,
+  trustProxy: true
 });
 const port = Number(process.env.PORT) || 9002;
 
