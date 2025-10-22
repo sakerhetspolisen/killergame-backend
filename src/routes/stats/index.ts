@@ -28,19 +28,19 @@ export default async function stats(
     try {
       latestStatsObj = await stats.findOne({}, { projection: { _id: 0 } });
     } catch (error) {
-      fastify.log.error("Error fetching data from MongoDB:", error);
+      fastify.log.error(error, "Error fetching data from MongoDB:");
     }
     try {
       for (const [clientID, socket] of connectedClients.entries()) {
         try {
           socket.send(JSON.stringify(latestStatsObj));
         } catch (error) {
-          fastify.log.error(`Error sending data to client ${clientID}:`, error);
+          fastify.log.error(error, `Error sending data to client ${clientID}:`);
           connectedClients.delete(clientID);
         }
       }
     } catch (error) {
-      fastify.log.error("Error sending latest stats data to clients: ", error);
+      fastify.log.error(error, "Error sending latest stats data to clients: ");
     }
   }, STATS_POLLING_INTERVAL_IN_SECONDS * 1000);
 
