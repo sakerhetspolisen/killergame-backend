@@ -57,10 +57,12 @@ export default function admin(
     for (let player of allPlayers) {
       let targetIsValid = false;
       let timesFoundAsTarget = 0;
-      if (!player.target.id) playersWithoutTarget.push(player.id);
+      if (!player.target || !player.target.id) {
+          playersWithoutTarget.push(player.id);
+      }
       for (let scndPlayer of allPlayers) {
-        if (player.target.id === scndPlayer.id) targetIsValid = true;
-        if (player.id === scndPlayer.target.id) timesFoundAsTarget += 1;
+        if (player.target && player.target.id === scndPlayer.id) targetIsValid = true;
+        if (scndPlayer.target && player.id === scndPlayer.target.id) timesFoundAsTarget += 1;
         if (player.id === scndPlayer.id && player._id !== scndPlayer._id) {
           if (playerIDsThatAppearMultipleTimes[player.id]) {
             playerIDsThatAppearMultipleTimes[player.id].push(
